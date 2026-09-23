@@ -80,5 +80,20 @@ in consumer manifests, not `cidp-packages`'s own layout.
 
 ## Action Items
 1. [x] `cidp-packages` ships as a normal installable Python package (`pyproject.toml`, `src/` layout).
-2. [ ] Tag `v0.1.0` once CI is green.
-3. [ ] Consumers pin `cidp-packages @ git+https://github.com/fjrd12/cidp-packages@v0.1.0` in their manifests.
+2. [x] Tag `v0.1.0` once CI is green.
+3. [x] Consumers pin `cidp-packages @ git+https://github.com/fjrd12/cidp-packages@v0.1.0` in their manifests.
+
+## Update (2026-09-23, during Task 3)
+
+This repo was made **public**. Not part of the original decision above, but
+directly downstream of it: `pip install`ing a private repo's git+tag URL
+needs credentials at every install site — fine for a developer's own
+machine (existing `gh`/git auth), but CI jobs in a *different* repo
+(`cidp-ingestion`, and every future consumer) don't have cross-repo access
+to a private repo by default, and neither does a plain `docker build`
+without extra plumbing (BuildKit secrets, worked but added real complexity
+— see `cidp-ingestion`'s git history for the attempt). Rather than solve
+that access problem per-repo, per-consumer, forever, `cidp-packages` itself
+became public: no secrets or proprietary trading logic live here (adapter,
+models, retry decorator), so the downside is low and it removes the
+problem at the source. The other CIDP repos stay private.
