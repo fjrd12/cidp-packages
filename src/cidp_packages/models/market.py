@@ -9,7 +9,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from cidp_packages.models.base import TimestampedModel
 
@@ -49,3 +49,11 @@ class MarketOrderBook(TimestampedModel):
     bids: list[MarketOrderBookEntry]
     asks: list[MarketOrderBookEntry]
     source: str
+
+    @model_validator(mode="after")
+    def _check_sides_match_lists(self) -> MarketOrderBook:
+        if any(entry.side != "bid" for entry in self.bids):
+            raise ValueError("all entries in `bids` must have side='bid'")
+        if any(entry.side != "ask" for entry in self.asks):
+            raise ValueError("all entries in `asks` must have side='ask'")
+        return self

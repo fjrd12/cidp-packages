@@ -154,3 +154,33 @@ async def test_malformed_payload_raises_validation_error(client: BitsoClient):
     )
     with pytest.raises(ValidationError):
         await client.get_ticker("btc_mxn")
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_missing_payload_envelope_raises_bitso_api_error(client: BitsoClient):
+    respx.get(f"{BASE_URL}/v3/ticker/?book=btc_mxn").mock(
+        return_value=httpx.Response(200, json={"success": True})  # no "payload" key
+    )
+    with pytest.raises(BitsoAPIError):
+        await client.get_ticker("btc_mxn")
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_non_json_200_raises_bitso_api_error(client: BitsoClient):
+    respx.get(f"{BASE_URL}/v3/ticker/?book=btc_mxn").mock(
+        return_value=httpx.Response(200, text="not json")
+    )
+    with pytest.raises(BitsoAPIError):
+        await client.get_ticker("btc_mxn")
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_balances_missing_key_raises_bitso_api_error(client: BitsoClient):
+    respx.get(f"{BASE_URL}/v3/balance/").mock(
+        return_value=httpx.Response(200, json={"success": True, "payload": {}})
+    )
+    with pytest.raises(BitsoAPIError):
+        await client.get_balances()

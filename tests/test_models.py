@@ -98,6 +98,21 @@ def test_order_book_allows_empty_sides():
     assert len(book.asks) == 1
 
 
+def test_order_book_rejects_mismatched_side():
+    with pytest.raises(ValidationError):
+        MarketOrderBook(
+            exchange="bitso",
+            book="btc_mxn",
+            base_currency="btc",
+            quote_currency="mxn",
+            bids=[MarketOrderBookEntry(side="ask", price=Decimal(100), amount=Decimal(1))],
+            asks=[],
+            event_timestamp=EVENT_TS,
+            ingestion_timestamp=INGEST_TS,
+            source="bitso_api_v3",
+        )
+
+
 def test_account_balance_round_trip():
     balance = AccountBalance(
         exchange="bitso",

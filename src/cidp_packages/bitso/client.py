@@ -55,6 +55,9 @@ class BitsoClient:
             raise BitsoAuthError(
                 "BitsoClient requires api_key and api_secret for authenticated endpoints"
             )
+        # Bitso requires a strictly increasing nonce per API key. Wall-clock
+        # milliseconds is good enough at V0's ~5-minute poll cadence; revisit
+        # with a monotonic counter if call frequency/concurrency increases.
         nonce = str(int(time.time() * 1000))
         message = nonce + method.upper() + request_path + body
         signature = hmac.new(
@@ -86,10 +89,15 @@ class BitsoClient:
                 f"Bitso request to {path} failed: {response.text}", status_code=response.status_code
             )
 
-        payload = response.json()
-        if not payload.get("success", False):
-            raise BitsoAPIError(f"Bitso reported failure for {path}: {payload}")
-        return payload["payload"]
+        try:
+            payload = response.json()
+            if not payload.get("success", False):
+                raise BitsoAPIError(f"Bitso reported failure for {path}: {payload}")
+            return payload["payload"]
+        except BitsoAPIError:
+            raise
+        except (ValueError, KeyError) as exc:
+            raise BitsoAPIError(f"Bitso returned an unexpected response shape for {path}") from exc
 
     async def get_ticker(self, book: str) -> BitsoTicker:
         payload = await self._get(f"/v3/ticker/?book={book}")
@@ -102,4 +110,8 @@ class BitsoClient:
 
     async def get_balances(self) -> list[BitsoBalance]:
         payload = await self._get("/v3/balance/", authenticated=True)
-        return [BitsoBalance.model_validate(item) for item in payload["balances"]]
+        try:
+            balances = payload["balances"]
+        except KeyError as exc:
+            raise BitsoAPIError("Bitso balance response missing 'balances'") from exc
+        return [BitsoBalance.model_validate(item) for item in balances]
