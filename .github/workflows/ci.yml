@@ -1,0 +1,59 @@
+# Started from cidp-infra/templates/ci-python.yml — see that repo's README
+# for why this isn't a reusable workflow_call (GitHub blocks private
+# cross-repo reusable workflows outside an org).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check .
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: timescale/timescaledb:2.17.2-pg16
+        env:
+          POSTGRES_USER: cidp
+          POSTGRES_PASSWORD: cidp
+          POSTGRES_DB: cidp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cidp -d cidp_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[test]"
+      - env:
+          DATABASE_URL: postgresql://cidp:cidp@localhost:5432/cidp_test
+          REDIS_URL: redis://localhost:6379/0
+        run: pytest -v
