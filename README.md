@@ -80,4 +80,4 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[test]"
 
 ## Status
 
-V0, Task 2 complete.
+V0 complete (Tasks 2, 5 land here).
