@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    uses: fjrd12/cidp-infra/.github/workflows/reusable-lint.yml@main
+    with:
+      language: python
+
+  test:
+    needs: lint
+    uses: fjrd12/cidp-infra/.github/workflows/reusable-test.yml@main
+    with:
+      language: python
